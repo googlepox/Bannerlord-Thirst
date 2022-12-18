@@ -200,6 +200,21 @@ namespace Thirst.UI
                         num2 += itemRosterElement.Amount;
                     }
                 }
+                else if (!itemRosterElement.IsEmpty &&
+                         itemRosterElement.EquipmentElement.Item.ItemCategory.StringId == "mead" ||
+                         itemRosterElement.EquipmentElement.Item.ItemCategory.StringId == "beer" ||
+                         itemRosterElement.EquipmentElement.Item.ItemCategory.StringId == "wine")
+                {
+                    EquipmentElement equipmentElement = itemRosterElement.EquipmentElement;
+                    ItemObject itemObject1 = equipmentElement.Item;
+                    float modifiedAmount;
+                    List<TooltipProperty> tooltipPropertyList = collection1;
+                    equipmentElement = itemRosterElement.EquipmentElement;
+                    modifiedAmount = itemRosterElement.Amount * 1.00f;
+                    TooltipProperty tooltipProperty = new TooltipProperty(equipmentElement.GetModifiedItemName().ToString(), modifiedAmount.ToString(format: "0.##"), 0);
+                    tooltipPropertyList.Add(tooltipProperty);
+                    num2 += itemRosterElement.Amount;
+                }
             }
             if (num2 > 0)
             {
