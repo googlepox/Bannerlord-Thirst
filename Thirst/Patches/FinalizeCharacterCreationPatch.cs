@@ -1,8 +1,5 @@
 ﻿using HarmonyLib;
-using TaleWorlds.CampaignSystem.CampaignBehaviors;
 using TaleWorlds.CampaignSystem.CharacterCreationContent;
-using TaleWorlds.CampaignSystem.Party;
-using Thirst.UI;
 
 namespace Thirst.Patches
 {
@@ -12,7 +9,6 @@ namespace Thirst.Patches
         public static void Prefix()
         {
             SubModule.thirst.InitializePlayer();
-            //ThirstMapBarMixin.partyModel = SubModule.thirst.partyThirst[MobileParty.MainParty];
         }
     }
 }

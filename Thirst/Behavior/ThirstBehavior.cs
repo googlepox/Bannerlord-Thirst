@@ -4,17 +4,18 @@ using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.CampaignSystem.Settlements.Buildings;
 using TaleWorlds.Core;
+using Thirst.Managers;
 using Thirst.Models;
 
 namespace Thirst.Behavior
 {
-	internal class ThirstBehavior : CampaignBehaviorBase
-	{
+    internal class ThirstBehavior : CampaignBehaviorBase
+    {
 
         public override void RegisterEvents()
-		{
+        {
             CampaignEvents.DailyTickPartyEvent.AddNonSerializedListener(this, new Action<MobileParty>(this.DailyTickParty));
-            //CampaignEvents.OnGameLoadFinishedEvent.AddNonSerializedListener(this, new Action(this.OnGameLoadFinished));
+            CampaignEvents.OnGameLoadFinishedEvent.AddNonSerializedListener(this, new Action(this.OnGameLoadFinished));
             CampaignEvents.OnTutorialCompletedEvent.AddNonSerializedListener(this, new Action<string>(this.OnTutorialCompleted));
             CampaignEvents.DailyTickSettlementEvent.AddNonSerializedListener(this, new Action<Settlement>(this.DailyTickSettlement));
             CampaignEvents.OnGameEarlyLoadedEvent.AddNonSerializedListener(this, new Action<CampaignGameStarter>(this.OnGameEarlyLoaded));
@@ -25,16 +26,20 @@ namespace Thirst.Behavior
 
         private void OnNewGameCreated(CampaignGameStarter starter)
         {
+            SubModule.uiExtender.Register(typeof(SubModule).Assembly);
+            SubModule.uiExtender.Enable();
             SubModule.thirst.InitializeItems();
             SubModule.thirst.InitializeParties();
-            SubModule.thirst.InitializeSettlements();
+            //SubModule.thirst.InitializeSettlements();
             AddWaterOnGameStart();
         }
         private void OnGameEarlyLoaded(CampaignGameStarter gameStarter)
         {
+            SubModule.uiExtender.Register(typeof(SubModule).Assembly);
+            SubModule.uiExtender.Enable();
             SubModule.thirst.InitializeItems();
             SubModule.thirst.InitializeParties();
-            SubModule.thirst.InitializeSettlements();
+            //SubModule.thirst.InitializeSettlements();
             SubModule.thirst.InitializePlayer();
         }
 
@@ -42,50 +47,45 @@ namespace Thirst.Behavior
         {
             SubModule.thirst.InitializeItems();
             SubModule.thirst.InitializeParties();
-            SubModule.thirst.InitializeSettlements();
-            MobileParty party = MobileParty.MainParty;
-            party.ItemRoster.AddToCounts(SubModule.thirst.Water, 3);
+            //SubModule.thirst.InitializeSettlements();
             AddWaterOnGameStart();
-            PartyWaterConsumptionModel.IsWaterGiven = true;
+            ThirstManager.IsWaterGiven = true;
         }
 
         private void MobilePartyCreated(MobileParty party)
         {
-            if (!SubModule.thirst.partyThirst.ContainsKey(party))
+            if (!ThirstManager.partyThirst.ContainsKey(party))
             {
-                SubModule.thirst.partyThirst[party] = new PartyWaterConsumptionModel();
+                ThirstManager.partyThirst[party] = new PartyWaterConsumptionModel();
             }
         }
 
         private void MobilePartyDestroyed(MobileParty party, PartyBase partyBase)
         {
-            if (SubModule.thirst.partyThirst.ContainsKey(party))
+            if (ThirstManager.partyThirst.ContainsKey(party))
             {
-                SubModule.thirst.partyThirst.Remove(party);
+                ThirstManager.partyThirst.Remove(party);
             }
         }
 
         private void DailyTickParty(MobileParty party)
         {
-            if (SubModule.thirst.partyThirst.ContainsKey(party))
+            if (ThirstManager.partyThirst.ContainsKey(party))
             {
-                SubModule.thirst.partyThirst[party].PartyConsumeWater(party);
+                ThirstManager.partyThirst[party].PartyConsumeWater(party);
             }
         }
 
         private void OnGameLoadFinished()
         {
-            if (!PartyWaterConsumptionModel.IsWaterGiven)
-            {
-                AddWaterOnGameStart();
-                PartyWaterConsumptionModel.IsWaterGiven = true;
-            }
+            SubModule.uiExtender.Enable();
         }
 
         public override void SyncData(IDataStore dataStore)
-		{
-			
-		}
+        {
+            dataStore.SyncData("PartyThirstData", ref ThirstManager.partyThirst);
+            //dataStore.SyncData("SettlementThirstData", ref ThirstManager.settlementThirst);
+        }
 
         private void AddWaterToParties()
         {
@@ -116,17 +116,18 @@ namespace Thirst.Behavior
 
         public void AddWaterOnGameStart()
         {
-            if (!PartyWaterConsumptionModel.IsWaterGiven)
+            if (!ThirstManager.IsWaterGiven)
             {
                 MobileParty.MainParty.ItemRoster.AddToCounts(SubModule.thirst.Water, 2);
                 AddWaterToSettlements();
-                PartyWaterConsumptionModel.IsWaterGiven = true;
+                AddWaterToParties();
+                ThirstManager.IsWaterGiven = true;
             }
         }
 
         private void DailyTickSettlement(Settlement settlement)
         {
-            if (SubModule.thirst.settlementThirst.ContainsKey(settlement))
+            if (ThirstManager.settlementThirst.ContainsKey(settlement))
             {
                 int count = MBRandom.RandomInt(1, 5);
                 bool hasAqueduct = false;
@@ -143,11 +144,8 @@ namespace Thirst.Behavior
 
                     if (hasAqueduct)
                     {
-                        if (hasAqueduct)
-                        {
-                            waterToAdd = SubModule.thirst.Water;
-                            settlement.ItemRoster.AddToCounts(waterToAdd, count * 3);
-                        }
+                        waterToAdd = SubModule.thirst.Water;
+                        settlement.ItemRoster.AddToCounts(waterToAdd, count * 3);
                     }
                     else
                     {

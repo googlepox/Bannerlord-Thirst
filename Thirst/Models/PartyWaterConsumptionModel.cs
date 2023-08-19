@@ -1,39 +1,83 @@
 ﻿using System;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Roster;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
-using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.SaveSystem;
-using Thirst.WaterItems;
+using Thirst.Managers;
 
 namespace Thirst.Models
 {
     public class PartyWaterConsumptionModel
     {
-        public bool IsDehydrated = false;
+        [SaveableField(3)]
+        public bool IsDehydrated;
 
         public float WaterChange;
 
+        [SaveableField(1)]
         public float RemainingWaterPercentage;
-        public static int NumberOfMenOnMapToDrinkOneWater => 20;
+        public static int NumberOfMenOnMapToDrinkOneWater => 15;
 
-        [SaveableField(3)]
+        [SaveableField(2)]
         public static bool IsWaterGiven = false;
 
         public PartyWaterConsumptionModel()
         {
-            IsDehydrated = false;
-            WaterChange = 0;
-            RemainingWaterPercentage = 100;
+            this.IsDehydrated = false;
         }
 
         public float GetWaterChange(MobileParty mainParty)
         {
-            WaterChange = WaterChangeExplained(mainParty).ResultNumber;
-            return WaterChange;
+            this.WaterChange = WaterChangeExplained(mainParty).ResultNumber;
+            return this.WaterChange;
+        }
+
+        public float GetRemainingWaterPercentage(MobileParty party)
+        {
+            if (ThirstManager.partyThirst.ContainsKey(party))
+            {
+                PartyWaterConsumptionModel partyModel = ThirstManager.partyThirst[party];
+                return partyModel.RemainingWaterPercentage;
+            }
+            else
+            {
+                return 0;
+            }
+        }
+
+        public void SetRemainingWaterPercentage(MobileParty party, float percentage)
+        {
+            if (ThirstManager.partyThirst.ContainsKey(party))
+            {
+                PartyWaterConsumptionModel partyModel = ThirstManager.partyThirst[party];
+                partyModel.RemainingWaterPercentage = percentage;
+            }
+        }
+
+        public bool GetIsDehydrated(MobileParty party)
+        {
+            if (ThirstManager.partyThirst.ContainsKey(party))
+            {
+                PartyWaterConsumptionModel partyModel = ThirstManager.partyThirst[party];
+                return partyModel.IsDehydrated;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        public void SetIsDehydrated(MobileParty party, bool dehydrated)
+        {
+            if (ThirstManager.partyThirst.ContainsKey(party))
+            {
+                PartyWaterConsumptionModel partyModel = ThirstManager.partyThirst[party];
+                partyModel.IsDehydrated = dehydrated;
+            }
         }
 
         public ExplainedNumber WaterChangeExplained(MobileParty mainParty)
@@ -55,15 +99,15 @@ namespace Thirst.Models
           ExplainedNumber baseConsumption)
         {
             TerrainType faceTerrainType = Campaign.Current.MapSceneWrapper.GetFaceTerrainType(party.CurrentNavigationFace);
-            if (faceTerrainType == TerrainType.Desert && party.LeaderHero != null && party.LeaderHero.Culture != null && 
+            if (faceTerrainType == TerrainType.Desert && party.LeaderHero != null && party.LeaderHero.Culture != null &&
                 party.LeaderHero.Culture.StringId != "aserai" &&
                 party.LeaderHero.Culture.StringId != "lyrion" &&
                 party.LeaderHero.Culture.StringId != "apolssalian")
             {
                 baseConsumption.AddFactor(2.0f, new TextObject("in Desert"));
             }
-            else if (faceTerrainType == TerrainType.Dune && party.LeaderHero != null && party.LeaderHero.Culture != null && 
-                party.LeaderHero.Culture.StringId != "aserai" && 
+            else if (faceTerrainType == TerrainType.Dune && party.LeaderHero != null && party.LeaderHero.Culture != null &&
+                party.LeaderHero.Culture.StringId != "aserai" &&
                 party.LeaderHero.Culture.StringId != "lyrion" &&
                 party.LeaderHero.Culture.StringId != "apolssalian")
             {
@@ -83,17 +127,20 @@ namespace Thirst.Models
             }
             return baseConsumption;
         }
-        public static string GetDaysUntilNoWater(float totalWater, float waterChange)
+        public static string GetDaysUntilNoWater(int daysForWaterToLast, float waterChange)
         {
-            if ((double)totalWater <= 1.4012984643248171E-45)
+            if ((double)daysForWaterToLast <= 1.4012984643248171E-45)
+            {
                 return new TextObject("{=koX9okuG}None").ToString();
-            return (double)waterChange >= -1.4012984643248171E-45 ? "Never" : MathF.Ceiling(MathF.Abs(totalWater / waterChange)).ToString();
+            }
+
+            return (double)waterChange >= -1.4012984643248171E-45 ? "Never" : daysForWaterToLast.ToString();
         }
 
         public float GetWater(MobileParty party)
         {
             float waterItems = 0;
-            for (int index = 0; index < party.ItemRoster.Count; ++index)
+            for (int index = 0; index < party.ItemRoster.Count; index++)
             {
                 ItemRosterElement itemRosterElement = party.ItemRoster[index];
                 if (!itemRosterElement.IsEmpty)
@@ -102,28 +149,9 @@ namespace Thirst.Models
                     ItemObject itemObject1 = equipmentElement.Item;
                     if (itemObject1.ItemCategory != null && itemObject1.ItemCategory.StringId == "water")
                     {
-                        if (itemObject1.Name.ToString().Contains("Pristine"))
-                        {
-                            waterItems += (itemRosterElement.Amount * 1.75f);
-                        }
-                        else if (itemObject1.Name.ToString().Contains("Clean"))
-                        {
-                            waterItems += (itemRosterElement.Amount * 1.50f);
-                        }
-                        else if (itemObject1.Name.ToString() == "Water")
-                        {
-                            waterItems += (itemRosterElement.Amount);
-                        }
-                        else if (itemObject1.Name.ToString().Contains("Dirty"))
-                        {
-                            waterItems += (itemRosterElement.Amount * 0.50f);
-                        }
-                        else if (itemObject1.Name.ToString().Contains("Filthy"))
-                        {
-                            waterItems += (itemRosterElement.Amount * 0.25f);
-                        }
+                        waterItems += (itemRosterElement.Amount);
                     }
-                    else if (itemObject1.StringId == "mead" || itemObject1.StringId == "wine" || itemObject1.StringId == "beer")
+                    else if (itemObject1.ItemCategory.StringId == "bf_mead" || itemObject1.ItemCategory.StringId == "mead" || itemObject1.ItemCategory.StringId == "beer" || itemObject1.ItemCategory.StringId == "wine")
                     {
                         waterItems += (itemRosterElement.Amount);
                     }
@@ -134,9 +162,8 @@ namespace Thirst.Models
 
         public int GetNumDaysForWaterToLast(MobileParty party)
         {
-            float num1 = GetWater(party) * 100;
-            if (party == MobileParty.MainParty)
-                num1 += (int) this.RemainingWaterPercentage;
+            float num1 = (GetWater(party)) * 100f;
+            num1 += this.GetRemainingWaterPercentage(party);
             return (int)((double)num1 / (100.0 * -(double)this.WaterChange));
         }
 
@@ -144,145 +171,57 @@ namespace Thirst.Models
         {
             ItemRoster itemRoster = party.ItemRoster;
             int maxValueWater = 0;
-            int maxValueWaterDirty = 0;
-            int maxValueWaterFilthy = 0;
-            int maxValueWaterClean = 0;
-            int maxValueWaterPristine = 0;
             int maxValueAlcohol = 0;
-            int dirtyConsumed = 0;
-            int filthyConsumed = 0;
-            for (int index = 0; index < itemRoster.Count; ++index)
+            for (int index = 0; index < itemRoster.Count; index++)
             {
                 if (itemRoster.GetItemAtIndex(index) != null && itemRoster.GetItemAtIndex(index).ItemCategory.StringId == "water")
                 {
-                    if (itemRoster.GetItemAtIndex(index) != null &&
-                        itemRoster.GetItemAtIndex(index).Name.Contains("Pristine"))
-                    {
-                        ++maxValueWaterPristine;
-                    }
-                    else if (itemRoster.GetItemAtIndex(index) != null &&
-                             itemRoster.GetItemAtIndex(index).Name.Contains("Clean"))
-                    {
-                        ++maxValueWaterClean;
-                    }
-                    else if (itemRoster.GetItemAtIndex(index) != null &&
-                             itemRoster.GetItemAtIndex(index).Name.ToString() == "Water")
-                    {
-                        ++maxValueWater;
-                    }
-                    else if (itemRoster.GetItemAtIndex(index) != null &&
-                             itemRoster.GetItemAtIndex(index).Name.Contains("Dirty"))
-                    {
-                        ++maxValueWaterDirty;
-                    }
-                    else if (itemRoster.GetItemAtIndex(index) != null &&
-                             itemRoster.GetItemAtIndex(index).Name.Contains("Filthy"))
-                    {
-                        ++maxValueWaterFilthy; ;
-                    }
+                    maxValueWater++;
                 }
-                else if (itemRoster.GetItemAtIndex(index).StringId == "mead" || 
-                    itemRoster.GetItemAtIndex(index).StringId == "wine" || 
-                    itemRoster.GetItemAtIndex(index).StringId == "beer")
+                else if (itemRoster.GetItemAtIndex(index).ItemCategory.StringId == "bf_mead" ||
+                    itemRoster.GetItemAtIndex(index).ItemCategory.StringId == "mead" ||
+                    itemRoster.GetItemAtIndex(index).ItemCategory.StringId == "beer" ||
+                    itemRoster.GetItemAtIndex(index).ItemCategory.StringId == "wine")
                 {
                     maxValueAlcohol++;
                 }
 
             }
-            int maxValue = maxValueWater + maxValueWaterDirty + maxValueWaterFilthy + maxValueWaterClean + maxValueWaterPristine + maxValueAlcohol;
+            int maxValue = maxValueWater + maxValueAlcohol;
             while (maxValue > 0 && partyRemainingWaterPercentage <= 0)
             {
-                int num1 = MBRandom.RandomInt(maxValue);
-                bool flag2 = false;
-                int num2 = 0;
-                for (int index = itemRoster.Count - 1; index >= 0 && !flag2; --index)
+                for (int index = itemRoster.Count - 1; index >= 0; --index)
                 {
                     int elementNumber = itemRoster.GetElementNumber(index);
                     if (elementNumber > 0)
                     {
-                        ++num2;
-                        if (num1 < num2)
+                        if (itemRoster.GetItemAtIndex(index).ItemCategory.StringId == "water")
                         {
-                            if (itemRoster.GetItemAtIndex(index).ItemCategory != null && itemRoster.GetItemAtIndex(index).ItemCategory.StringId == "water")
+                            partyRemainingWaterPercentage += 100;
+                            if (elementNumber >= 1)
                             {
-                                if (itemRoster.GetItemAtIndex(index).Name.Contains("Pristine"))
-                                {
-                                    partyRemainingWaterPercentage += 175;
-                                    if (elementNumber == 1)
-                                    {
-                                        --maxValue;
-                                        --maxValueWaterPristine;
-                                    }
-                                    flag2 = true;
-                                    itemRoster.AddToCounts(itemRoster.GetItemAtIndex(index), -1);
-                                }
-                                else if (itemRoster.GetItemAtIndex(index).Name.Contains("Clean") && maxValueWaterPristine <= 0)
-                                {
-                                    partyRemainingWaterPercentage += 150;
-                                    if (elementNumber == 1)
-                                    {
-                                        --maxValue;
-                                        --maxValueWaterClean;
-                                    }
-                                    flag2 = true;
-                                    itemRoster.AddToCounts(itemRoster.GetItemAtIndex(index), -1);
-                                }
-                                else if (itemRoster.GetItemAtIndex(index).Name.ToString() == "Water" && maxValueWaterPristine <= 0 && maxValueWaterPristine <= 0)
-                                {
-                                    partyRemainingWaterPercentage += 100;
-                                    if (elementNumber == 1)
-                                    {
-                                        --maxValue;
-                                        --maxValueWater;
-                                    }
-                                    flag2 = true;
-                                    itemRoster.AddToCounts(itemRoster.GetItemAtIndex(index), -1);
-                                }
-                                else if (itemRoster.GetItemAtIndex(index).Name.Contains("Dirty") && maxValueWaterPristine <= 0 && maxValueWaterPristine <= 0 && maxValueWater <= 0)
-                                {
-                                    partyRemainingWaterPercentage += 50;
-                                    dirtyConsumed += 1;
-                                    if (elementNumber == 1)
-                                    {
-                                        --maxValue;
-                                        --maxValueWaterDirty;
-                                    }
-                                    flag2 = true;
-                                    itemRoster.AddToCounts(itemRoster.GetItemAtIndex(index), -1);
-                                }
-                                else if (itemRoster.GetItemAtIndex(index).Name.Contains("Filthy") && maxValueWaterPristine <= 0 && maxValueWaterPristine <= 0 && maxValueWater <= 0 && maxValueWaterDirty <= 0)
-                                {
-                                    partyRemainingWaterPercentage += 25;
-                                    filthyConsumed += 1;
-                                    if (elementNumber == 1)
-                                    {
-                                        --maxValue;
-                                        --maxValueWaterFilthy;
-                                    }
-                                    flag2 = true;
-                                    itemRoster.AddToCounts(itemRoster.GetItemAtIndex(index), -1);
-                                }
+                                --maxValue;
+                                --maxValueWater;
                             }
-                            else if(itemRoster.GetItemAtIndex(index).ItemCategory != null && 
-                                ((itemRoster.GetItemAtIndex(index).ItemCategory.StringId == "beer") || 
-                                itemRoster.GetItemAtIndex(index).ItemCategory.StringId == "wine") ||
-                                itemRoster.GetItemAtIndex(index).ItemCategory.StringId == "mead")
+                            itemRoster.AddToCounts(itemRoster.GetItemAtIndex(index), -1);
+                        }
+                        else if (itemRoster.GetItemAtIndex(index).ItemCategory != null &&
+                            ((itemRoster.GetItemAtIndex(index).ItemCategory.StringId == "beer") ||
+                            itemRoster.GetItemAtIndex(index).ItemCategory.StringId == "wine") ||
+                            itemRoster.GetItemAtIndex(index).ItemCategory.StringId == "mead")
+                        {
+                            partyRemainingWaterPercentage += 100;
+                            if (elementNumber >= 1)
                             {
-                                partyRemainingWaterPercentage += 100;
-                                if (elementNumber == 1)
-                                {
-                                    --maxValue;
-                                    --maxValueAlcohol;
-                                }
-                                itemRoster.AddToCounts(itemRoster.GetItemAtIndex(index), -1);
+                                --maxValue;
+                                --maxValueAlcohol;
                             }
-
+                            itemRoster.AddToCounts(itemRoster.GetItemAtIndex(index), -1);
                         }
                     }
                 }
             }
-            CalculateInjuryWaterDirty(party, dirtyConsumed);
-            CalculateInjuryWaterFilthy(party, filthyConsumed);
+            //this.SetRemainingWaterPercentage(party, partyRemainingWaterPercentage);
             return partyRemainingWaterPercentage;
         }
 
@@ -322,14 +261,14 @@ namespace Thirst.Models
 
         public void PartyConsumeWater(MobileParty party)
         {
-            bool isDehydrated1 = this.IsDehydrated;
             float waterChange = this.GetWaterChange(party);
             double num1 = (double)waterChange < 0.0 ? -(double)waterChange : 0.0;
-            float percentage = (float)this.RemainingWaterPercentage;
-            int partyRemainingWaterPercentageOld = (int)(percentage < 0 ? 0 : percentage) - MathF.Round((float)(num1 * 100));
+            float percentage = (float)SubModule.thirst.mainModel.GetRemainingWaterPercentage(party);
+            int partyRemainingWaterPercentageOld = (int)(percentage < 0.0f ? 0.0f : percentage) - MathF.Round((float)(num1 * 100.0f));
             int partyRemainingWaterPercentage = this.MakeWaterConsumption(party, partyRemainingWaterPercentageOld);
-            this.RemainingWaterPercentage = partyRemainingWaterPercentage < 0 ? 0 : partyRemainingWaterPercentage;
-            if (this.RemainingWaterPercentage <= 0)
+            float newPercentage = partyRemainingWaterPercentage < 0.0f ? 0.0f : partyRemainingWaterPercentage;
+            this.SetRemainingWaterPercentage(party, newPercentage);
+            if (newPercentage + SubModule.thirst.mainModel.GetWater(party) <= 0)
             {
                 this.IsDehydrated = true;
             }
@@ -337,36 +276,42 @@ namespace Thirst.Models
             {
                 this.IsDehydrated = false;
             }
-            bool isDehydrated2 = this.IsDehydrated;
+            this.SetIsDehydrated(party, this.IsDehydrated);
             CampaignTime campaignTime = CampaignData.CampaignStartTime;
             int toDays1 = (int)campaignTime.ToDays;
             campaignTime = CampaignTime.Now;
             int toDays2 = (int)campaignTime.ToDays;
             if (toDays1 != toDays2)
             {
-                if (isDehydrated1 & isDehydrated2)
+                if (this.IsDehydrated)
                 {
                     int dehydrationMoralePenalty = Campaign.Current.Models.PartyMoraleModel.GetDailyStarvationMoralePenalty(party.Party);
-                    party.RecentEventsMorale += (float)dehydrationMoralePenalty;
                     if (party.IsMainParty)
                     {
                         MBTextManager.SetTextVariable("MORALE_PENALTY", -dehydrationMoralePenalty);
                         MBInformationManager.AddQuickInformation(new TextObject("Your party is dehydrated. You lose {MORALE_PENALTY} morale."));
                         campaignTime = CampaignTime.Now;
-                        party.RecentEventsMorale -= 5;
-                        party.MoraleExplained.Add(-5, new TextObject("Dehydrated"));
+                        party.MoraleExplained.Add(dehydrationMoralePenalty, new TextObject("Dehydrated"));
                         if ((int)campaignTime.ToDays % 3 == 0 && party.MemberRoster.TotalManCount > 1)
+                        {
                             TraitLevelingHelper.OnPartyStarved();
+                        }
+                    }
+                    else
+                    {
+                        party.RecentEventsMorale += dehydrationMoralePenalty;
                     }
                 }
                 if (party.MemberRoster.TotalManCount > 1)
                 {
-                    SkillLevelingManager.OnFoodConsumed(party, isDehydrated2);
-                    if (!isDehydrated1 && !isDehydrated2 && party.IsMainParty && (double)party.Morale >= 90.0 && party.MemberRoster.TotalRegulars >= 20)
+                    SkillLevelingManager.OnFoodConsumed(party, this.IsDehydrated);
+                    if (!this.IsDehydrated && party.IsMainParty && (double)party.Morale >= 90.0 && party.MemberRoster.TotalRegulars >= 20)
                     {
                         campaignTime = CampaignTime.Now;
                         if ((int)campaignTime.ToDays % 10 == 0)
+                        {
                             TraitLevelingHelper.OnPartyTreatedWell();
+                        }
                     }
                 }
             }

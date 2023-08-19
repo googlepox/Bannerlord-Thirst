@@ -1,6 +1,5 @@
 ﻿using Bannerlord.UIExtenderEx.Attributes;
 using Bannerlord.UIExtenderEx.ViewModels;
-using System;
 using System.Collections.Generic;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
@@ -24,58 +23,58 @@ namespace Thirst.UI
         private BasicTooltipViewModel thirstHint;
         private static MobileParty mainParty = MobileParty.MainParty;
 
+        public ThirstMapBarMixin(MapInfoVM vm)
+          : base(vm)
+        {
+
+        }
+
         [DataSourceProperty]
         public float TotalWater
         {
-            get
-            {
-                return this.totalWater;
-            }
+            get => this.totalWater;
             set
             {
-                bool flag = value != this.totalWater;
-                if (flag)
+                if (value == this.totalWater)
                 {
-                    this.totalWater = value;
-                    base.ViewModel.OnPropertyChangedWithValue(value, "TotalWater");
+                    return;
                 }
+
+                this.totalWater = value;
+                this.ViewModel.OnPropertyChangedWithValue(value, nameof(TotalWater));
             }
         }
 
         [DataSourceProperty]
         public string WaterWithAbbrText
         {
-            get
-            {
-                return this.waterAbbr;
-            }
+            get => this.waterAbbr;
+
             set
             {
-                bool flag = value != this.waterAbbr;
-                if (flag)
+                if (!(value != this.waterAbbr))
                 {
-
-                    this.waterAbbr = value;
-                    base.ViewModel.OnPropertyChangedWithValue(value, "WaterWithAbbrText");
+                    return;
                 }
+
+                this.waterAbbr = value;
+                this.ViewModel.OnPropertyChangedWithValue<string>(value, nameof(WaterWithAbbrText));
             }
         }
 
         [DataSourceProperty]
         public float Water
         {
-            get
-            {
-                return this.water;
-            }
+            get => this.water;
             set
             {
-                bool flag = value != this.water;
-                if (flag)
+                if (value == this.water)
                 {
-                    this.water = value;
-                    base.ViewModel.OnPropertyChangedWithValue(value, "Water");
+                    return;
                 }
+
+                this.water = value;
+                this.ViewModel.OnPropertyChangedWithValue(value, nameof(Water));
             }
         }
 
@@ -86,16 +85,13 @@ namespace Thirst.UI
             set
             {
                 if (value == this._isDailyConsumptionTooltipWarningWater)
+                {
                     return;
-                this._isDailyConsumptionTooltipWarningWater = value;
-                base.ViewModel.OnPropertyChangedWithValue((object)value, nameof(IsDailyConsumptionTooltipWarningWater));
-            }
-        }
+                }
 
-        public ThirstMapBarMixin(MapInfoVM vm)
-          : base(vm)
-        {
-            
+                this._isDailyConsumptionTooltipWarningWater = value;
+                base.ViewModel.OnPropertyChangedWithValue(value, nameof(IsDailyConsumptionTooltipWarningWater));
+            }
         }
 
         [DataSourceProperty]
@@ -105,7 +101,10 @@ namespace Thirst.UI
             set
             {
                 if (value == this.thirstHint)
+                {
                     return;
+                }
+
                 this.thirstHint = value;
                 this.ViewModel.OnPropertyChangedWithValue((object)value, nameof(ThirstHint));
             }
@@ -113,17 +112,20 @@ namespace Thirst.UI
 
         public override void OnRefresh()
         {
-            this.water = SubModule.thirst.mainModel.GetWater(mainParty);
-            this.totalWater = (float) (SubModule.thirst.mainModel.RemainingWaterPercentage + ((this.water - 1) * 100))/100;
-            this.waterAbbr = CampaignUIHelper.GetAbbreviatedValueTextFromValue((int) this.water);
-            this.ThirstHint = new BasicTooltipViewModel((Func<List<TooltipProperty>>)(() => GetPartyWaterTooltip(mainParty)));
+            this.Water = (float)SubModule.thirst.mainModel.GetWater(mainParty);
+            this.Water = (this.Water < 0.0f ? 0.0f : this.Water);
+            float preTotalWater = (((float)SubModule.thirst.mainModel.GetRemainingWaterPercentage(mainParty) + ((this.Water) * 100.0f))/100.0f) < 0.0f ? 0.0f : (float)((SubModule.thirst.mainModel.GetRemainingWaterPercentage(mainParty) + ((this.Water) * 100.0f))/100.0f);
+            this.TotalWater = preTotalWater;
+            this.WaterWithAbbrText = CampaignUIHelper.GetAbbreviatedValueTextFromValue((int)this.TotalWater);
+            this.ThirstHint = new BasicTooltipViewModel(() => GetPartyWaterTooltip(mainParty));
             this._isDailyConsumptionTooltipWarningWater = SubModule.thirst.mainModel.GetNumDaysForWaterToLast(mainParty) < 1;
+            this.IsDailyConsumptionTooltipWarningWater = SubModule.thirst.mainModel.GetNumDaysForWaterToLast(mainParty) < 1;
         }
 
         public List<TooltipProperty> GetPartyWaterTooltip(MobileParty mainParty)
         {
             List<TooltipProperty> properties = new List<TooltipProperty>();
-            float num1 = this.totalWater;
+            float num1 = this.TotalWater;
             string str = num1.ToString("0.##");
             properties.Add(new TooltipProperty("Water", str, 0, modifier: TooltipProperty.TooltipPropertyFlags.Title));
             ExplainedNumber waterChangeExplained = SubModule.thirst.mainModel.WaterChangeExplained(mainParty);
@@ -186,7 +188,7 @@ namespace Thirst.UI
                         List<TooltipProperty> tooltipPropertyList = collection1;
                         equipmentElement = itemRosterElement.EquipmentElement;
                         modifiedAmount = itemRosterElement.Amount * 0.25f;
-                        TooltipProperty tooltipProperty = new TooltipProperty(equipmentElement.GetModifiedItemName().ToString(), modifiedAmount.ToString(format:"0.##"), 0);
+                        TooltipProperty tooltipProperty = new TooltipProperty(equipmentElement.GetModifiedItemName().ToString(), modifiedAmount.ToString(format: "0.##"), 0);
                         tooltipPropertyList.Add(tooltipProperty);
                         num2 += itemRosterElement.Amount;
                     }
@@ -220,10 +222,11 @@ namespace Thirst.UI
             {
                 properties.Add(new TooltipProperty("Water", num2.ToString(), 0));
                 properties.Add(new TooltipProperty("", string.Empty, 0, false, TooltipProperty.TooltipPropertyFlags.RundownSeperator));
-                properties.AddRange((IEnumerable<TooltipProperty>)collection1);
+                properties.AddRange(collection1);
                 properties.Add(new TooltipProperty(string.Empty, string.Empty, -1, false));
             }
-            properties.Add(new TooltipProperty(new TextObject("Days until no water").ToString(), PartyWaterConsumptionModel.GetDaysUntilNoWater(num1, waterChangeExplained.ResultNumber), 0));
+            int daysForWaterToLast = SubModule.thirst.mainModel.GetNumDaysForWaterToLast(mainParty);
+            properties.Add(new TooltipProperty(new TextObject("Days until no water").ToString(), PartyWaterConsumptionModel.GetDaysUntilNoWater(daysForWaterToLast, waterChangeExplained.ResultNumber), 0));
             return properties;
         }
 
@@ -231,7 +234,10 @@ namespace Thirst.UI
         {
             string text = value.ToString("0.##");
             if ((double)value <= 1.0 / 1000.0)
+            {
                 return text;
+            }
+
             MBTextManager.SetTextVariable("NUMBER", text, false);
             return GameTexts.FindText("str_plus_with_number").ToString();
         }

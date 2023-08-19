@@ -14,8 +14,8 @@ namespace Thirst.Models
         public bool IsDehydrated = false;
 
         public float WaterChange;
-        
-        public static int NumberOfMenOnMapToDrinkOneWater => 10;
+
+        public static int NumberOfMenOnMapToDrinkOneWater => 15;
         public float RemainingWaterPercentage;
 
         public SettlementWaterConsumptionModel()
@@ -48,13 +48,17 @@ namespace Thirst.Models
         public ExplainedNumber CalculateDailyWaterConsumptionf(
           MobileParty party,
           ExplainedNumber baseConsumption)
-        {;
+        {
+            ;
             return baseConsumption;
         }
         public static string GetDaysUntilNoWater(float totalWater, float waterChange)
         {
             if ((double)totalWater <= 1.4012984643248171E-45)
+            {
                 return new TextObject("{=koX9okuG}None").ToString();
+            }
+
             return (double)waterChange >= -1.4012984643248171E-45 ? "Never" : MathF.Ceiling(MathF.Abs(totalWater / waterChange)).ToString();
         }
 
@@ -90,7 +94,9 @@ namespace Thirst.Models
             for (int index = 0; index < itemRoster.Count; ++index)
             {
                 if (itemRoster.GetItemAtIndex(index).ItemCategory.StringId == ("water"))
+                {
                     ++maxValue;
+                }
             }
             while (maxValue > 0 && partyRemainingWaterPercentage < 0)
             {
@@ -110,7 +116,10 @@ namespace Thirst.Models
                                 itemRoster.AddToCounts(itemRoster.GetItemAtIndex(index), -1);
                                 partyRemainingWaterPercentage += 100;
                                 if (elementNumber == 1)
+                                {
                                     --maxValue;
+                                }
+
                                 flag2 = true;
                             }
                         }
@@ -149,7 +158,9 @@ namespace Thirst.Models
                         MBInformationManager.AddQuickInformation(new TextObject("{=qhL5o55i}Your party is dehydrated. You lose {MORALE_PENALTY} morale."));
                         campaignTime = CampaignTime.Now;
                         if ((int)campaignTime.ToDays % 3 == 0 && party.MemberRoster.TotalManCount > 1)
+                        {
                             TraitLevelingHelper.OnPartyStarved();
+                        }
                     }
                 }
                 if (party.MemberRoster.TotalManCount > 1)
@@ -159,7 +170,9 @@ namespace Thirst.Models
                     {
                         campaignTime = CampaignTime.Now;
                         if ((int)campaignTime.ToDays % 10 == 0)
+                        {
                             TraitLevelingHelper.OnPartyTreatedWell();
+                        }
                     }
                 }
             }

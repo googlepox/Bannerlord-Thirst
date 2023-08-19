@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using TaleWorlds.CampaignSystem.Extensions;
-using TaleWorlds.CampaignSystem.GameComponents;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
@@ -14,12 +13,15 @@ namespace Thirst.Managers
     public class ThirstManager
     {
         [SaveableField(1)]
-        public Dictionary<MobileParty, PartyWaterConsumptionModel> partyThirst;
-        
-        [SaveableField(2)]
-        public Dictionary<Settlement, SettlementWaterConsumptionModel> settlementThirst;
+        public static Dictionary<MobileParty, PartyWaterConsumptionModel> partyThirst;
 
-        public WaterItemCategory waterItemCategory; 
+        [SaveableField(2)]
+        public static Dictionary<Settlement, SettlementWaterConsumptionModel> settlementThirst;
+
+        [SaveableField(3)]
+        public static bool IsWaterGiven = false;
+
+        public WaterItemCategory waterItemCategory;
         public WaterItem waterItem;
 
         public ItemCategory WaterCat;
@@ -32,18 +34,10 @@ namespace Thirst.Managers
 
         public ThirstManager()
         {
-            this.partyThirst = new Dictionary<MobileParty, PartyWaterConsumptionModel>();
-            this.settlementThirst = new Dictionary<Settlement, SettlementWaterConsumptionModel>();
+            partyThirst = new Dictionary<MobileParty, PartyWaterConsumptionModel>();
+            settlementThirst = new Dictionary<Settlement, SettlementWaterConsumptionModel>();
             this.waterTypes = new ItemObject[5];
-            mainModel = new PartyWaterConsumptionModel();
-        }
-
-        public void InitializePlayer()
-        {
-            if (!partyThirst.ContainsKey(MobileParty.MainParty))
-            {
-                partyThirst.Add(MobileParty.MainParty, mainModel);
-            }
+            this.mainModel = new PartyWaterConsumptionModel();
         }
 
         public void InitializeItemCategories()
@@ -68,41 +62,59 @@ namespace Thirst.Managers
             }
         }
 
+        public void InitializePlayer()
+        {
+            if (!partyThirst.ContainsKey(MobileParty.MainParty))
+            {
+                partyThirst.Add(MobileParty.MainParty, mainModel);
+            }
+        }
+
         public void InitializeParties()
         {
+            if (partyThirst.Count > 0)
+            {
+                return;
+            }
+
             foreach (MobileParty party in MobileParty.All)
             {
-                if (!SubModule.thirst.partyThirst.ContainsKey(party))
+                if (!ThirstManager.partyThirst.ContainsKey(party))
                 {
-                    SubModule.thirst.partyThirst.Add(party, new PartyWaterConsumptionModel());
+                    ThirstManager.partyThirst.Add(party, new PartyWaterConsumptionModel());
                 }
             }
         }
 
         public void InitializeSettlements()
         {
+            if (settlementThirst.Count > 0)
+            {
+                return;
+            }
+
             foreach (Settlement settlement in Settlement.All)
             {
-                if (!SubModule.thirst.settlementThirst.ContainsKey(settlement))
+                if (!ThirstManager.settlementThirst.ContainsKey(settlement))
                 {
-                    SubModule.thirst.settlementThirst.Add(settlement, new SettlementWaterConsumptionModel());
+                    ThirstManager.settlementThirst.Add(settlement, new SettlementWaterConsumptionModel());
                 }
             }
         }
 
         public void ReInitializeParty(MobileParty mobileParty)
         {
-            if (!SubModule.thirst.partyThirst.ContainsKey(mobileParty))
+            if (!ThirstManager.partyThirst.ContainsKey(mobileParty))
             {
-                SubModule.thirst.partyThirst.Add(mobileParty, new PartyWaterConsumptionModel());
+                ThirstManager.partyThirst.Add(mobileParty, new PartyWaterConsumptionModel());
             }
         }
 
         public void ReInitializeSettlement(Settlement settlement)
         {
-            if (!SubModule.thirst.settlementThirst.ContainsKey(settlement))
+            if (!ThirstManager.settlementThirst.ContainsKey(settlement))
             {
-                SubModule.thirst.settlementThirst.Add(settlement, new SettlementWaterConsumptionModel());
+                ThirstManager.settlementThirst.Add(settlement, new SettlementWaterConsumptionModel());
             }
         }
     }
