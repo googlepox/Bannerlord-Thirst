@@ -1,100 +1,54 @@
-﻿using System;
-using TaleWorlds.CampaignSystem;
+﻿using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Roster;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
-using TaleWorlds.SaveSystem;
-using Thirst.Managers;
+using TaleWorlds.ObjectSystem;
 
-namespace Thirst.Models
+namespace Thirst.Managers
 {
-    public class PartyWaterConsumptionModel
+    internal class PartyThirstManager
     {
-        [SaveableField(3)]
-        public bool IsDehydrated;
-
-        public float WaterChange;
-
-        [SaveableField(1)]
-        public float RemainingWaterPercentage;
-        public static int NumberOfMenOnMapToDrinkOneWater => 15;
-
-        [SaveableField(2)]
-        public static bool IsWaterGiven = false;
-
-        public PartyWaterConsumptionModel()
+        public static void InitializeParties()
         {
-            this.IsDehydrated = false;
-        }
-
-        public float GetWaterChange(MobileParty mainParty)
-        {
-            this.WaterChange = WaterChangeExplained(mainParty).ResultNumber;
-            return this.WaterChange;
-        }
-
-        public float GetRemainingWaterPercentage(MobileParty party)
-        {
-            if (ThirstManager.partyThirst.ContainsKey(party))
+            if (ThirstManager.partyThirst.Count > 0)
             {
-                PartyWaterConsumptionModel partyModel = ThirstManager.partyThirst[party];
-                return partyModel.RemainingWaterPercentage;
+                return;
             }
-            else
+
+            foreach (MobileParty party in MobileParty.All)
             {
-                return 0;
+                ThirstManager.partyThirst.Add(party, new ThirstData(0, false));
             }
         }
-
-        public void SetRemainingWaterPercentage(MobileParty party, float percentage)
+        public static void AddWaterToParties()
         {
-            if (ThirstManager.partyThirst.ContainsKey(party))
+            foreach (MobileParty party in MobileParty.All)
             {
-                PartyWaterConsumptionModel partyModel = ThirstManager.partyThirst[party];
-                partyModel.RemainingWaterPercentage = percentage;
+                int sections = 0;
+                for (int i = 0; i < party.MemberRoster.TotalManCount/20; i++)
+                {
+                    sections++;
+                }
+                while (sections > 0)
+                {
+                    party.ItemRoster.AddToCounts(MBObjectManager.Instance.GetObject<ItemObject>(x => x.ItemCategory.StringId == "water"), 2);
+                }
             }
+            MobileParty.MainParty.ItemRoster.AddToCounts(MBObjectManager.Instance.GetObject<ItemObject>(x => x.ItemCategory.StringId == "water"), 1);
         }
 
-        public bool GetIsDehydrated(MobileParty party)
-        {
-            if (ThirstManager.partyThirst.ContainsKey(party))
-            {
-                PartyWaterConsumptionModel partyModel = ThirstManager.partyThirst[party];
-                return partyModel.IsDehydrated;
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-        public void SetIsDehydrated(MobileParty party, bool dehydrated)
-        {
-            if (ThirstManager.partyThirst.ContainsKey(party))
-            {
-                PartyWaterConsumptionModel partyModel = ThirstManager.partyThirst[party];
-                partyModel.IsDehydrated = dehydrated;
-            }
-        }
-
-        public ExplainedNumber WaterChangeExplained(MobileParty mainParty)
-        {
-            ExplainedNumber baseConsumption = this.CalculateDailyBaseWaterConsumptionf(mainParty, includeDescription: true);
-            return this.CalculateDailyWaterConsumptionf(mainParty, baseConsumption);
-        }
-
-        public ExplainedNumber CalculateDailyBaseWaterConsumptionf(
+        public static ExplainedNumber CalculateDailyBaseWaterConsumptionf(
           MobileParty party,
           bool includeDescription = false)
         {
             int num = party.Party.NumberOfAllMembers + party.Party.NumberOfPrisoners / 2;
-            return new ExplainedNumber((float)-(num < 1 ? 1.0 : (double)num) / (float)NumberOfMenOnMapToDrinkOneWater, includeDescription);
+            return new ExplainedNumber((float)-(num < 1 ? 1.0 : num) / ThirstManager.NumberOfMenOnMapToDrinkOneWater, includeDescription);
         }
 
-        public ExplainedNumber CalculateDailyWaterConsumptionf(
+        public static ExplainedNumber CalculateDailyWaterConsumptionf(
           MobileParty party,
           ExplainedNumber baseConsumption)
         {
@@ -127,17 +81,40 @@ namespace Thirst.Models
             }
             return baseConsumption;
         }
+
+        public static ExplainedNumber WaterChangeExplained(MobileParty mainParty)
+        {
+            ExplainedNumber baseConsumption = CalculateDailyBaseWaterConsumptionf(mainParty, includeDescription: true);
+            return CalculateDailyWaterConsumptionf(mainParty, baseConsumption);
+        }
+
+        public static float GetWaterChange(MobileParty party)
+        {
+            return WaterChangeExplained(party).ResultNumber;
+        }
+
         public static string GetDaysUntilNoWater(int daysForWaterToLast, float waterChange)
         {
-            if ((double)daysForWaterToLast <= 1.4012984643248171E-45)
+            if (daysForWaterToLast <= 1.4012984643248171E-45)
             {
                 return new TextObject("{=koX9okuG}None").ToString();
             }
 
             return (double)waterChange >= -1.4012984643248171E-45 ? "Never" : daysForWaterToLast.ToString();
         }
+        public static int GetNumDaysForWaterToLast(MobileParty party)
+        {
+            float num1;
+            if (party == MobileParty.MainParty)
+            {
+                num1 = GetWater(party) * 100f;
+                num1 += ThirstManager.mainPartyRemainingWaterPercentage;
+                return (int)(num1 / (100.0 * -GetWaterChange(party)));
+            }
+            return 0;
+        }
 
-        public float GetWater(MobileParty party)
+        public static float GetWater(MobileParty party)
         {
             float waterItems = 0;
             for (int index = 0; index < party.ItemRoster.Count; index++)
@@ -160,14 +137,34 @@ namespace Thirst.Models
             return waterItems;
         }
 
-        public int GetNumDaysForWaterToLast(MobileParty party)
+        public static void PartyConsumeWater(MobileParty party)
         {
-            float num1 = (GetWater(party)) * 100f;
-            num1 += this.GetRemainingWaterPercentage(party);
-            return (int)((double)num1 / (100.0 * -(double)this.WaterChange));
+            ThirstData partyThirstData = ThirstManager.partyThirst[party];
+            bool isDehydrated = partyThirstData.IsDehydrated;
+            float waterChange = GetWaterChange(party);
+            double num1 = waterChange < 0.0 ? -waterChange : 0.0;
+            float percentage = partyThirstData.RemainingWaterPercentage;
+            float partyRemainingWaterPercentageOld = (percentage < 0.0f ? 0.0f : percentage) - MathF.Round((float)(num1 * 100.0f));
+            float partyRemainingWaterPercentage = MakeWaterConsumption(party, partyRemainingWaterPercentageOld);
+            float newPercentage = partyRemainingWaterPercentage < 0.0f ? 0.0f : partyRemainingWaterPercentage;
+            if (newPercentage + GetWater(party) <= 0)
+            {
+                isDehydrated = true;
+            }
+            else
+            {
+                isDehydrated = false;
+            }
+            ThirstManager.partyThirst[party] = new ThirstData(newPercentage, isDehydrated);
+            if (party == MobileParty.MainParty)
+            {
+                ThirstManager.mainPartyRemainingWaterPercentage = newPercentage;
+                ThirstManager.mainPartyIsDehydrated = isDehydrated;
+            }
+            HandleDehydration(party, isDehydrated);
         }
 
-        private int MakeWaterConsumption(MobileParty party, int partyRemainingWaterPercentage)
+        public static float MakeWaterConsumption(MobileParty party, float partyRemainingWaterPercentage)
         {
             ItemRoster itemRoster = party.ItemRoster;
             int maxValueWater = 0;
@@ -221,69 +218,18 @@ namespace Thirst.Models
                     }
                 }
             }
-            //this.SetRemainingWaterPercentage(party, partyRemainingWaterPercentage);
             return partyRemainingWaterPercentage;
         }
 
-        public void CalculateInjuryWaterDirty(MobileParty party, int dirty)
+        public static void HandleDehydration(MobileParty party, bool isDehydrated)
         {
-            Random rand = new Random();
-            int chance = rand.Next(0, 100);
-            int woundedCount = dirty * 10;
-            while (woundedCount > 0)
-            {
-                int randElement = MBRandom.RandomInt(0, woundedCount);
-                if (chance >= 25)
-                {
-                    CharacterObject randTroop = party.MemberRoster.GetCharacterAtIndex(randElement);
-                    party.Party.WoundMemberRosterElements(randTroop, 1);
-                }
-                woundedCount -= 1;
-            }
-        }
-
-        public void CalculateInjuryWaterFilthy(MobileParty party, int filthy)
-        {
-            Random rand = new Random();
-            int chance = rand.Next(0, 100);
-            int woundedCount = filthy * 10;
-            while (woundedCount > 0)
-            {
-                int randElement = MBRandom.RandomInt(0, woundedCount);
-                if (chance >= 50)
-                {
-                    CharacterObject randTroop = party.MemberRoster.GetCharacterAtIndex(randElement);
-                    party.Party.WoundMemberRosterElements(randTroop, 1);
-                }
-                woundedCount -= 1;
-            }
-        }
-
-        public void PartyConsumeWater(MobileParty party)
-        {
-            float waterChange = this.GetWaterChange(party);
-            double num1 = (double)waterChange < 0.0 ? -(double)waterChange : 0.0;
-            float percentage = (float)SubModule.thirst.mainModel.GetRemainingWaterPercentage(party);
-            int partyRemainingWaterPercentageOld = (int)(percentage < 0.0f ? 0.0f : percentage) - MathF.Round((float)(num1 * 100.0f));
-            int partyRemainingWaterPercentage = this.MakeWaterConsumption(party, partyRemainingWaterPercentageOld);
-            float newPercentage = partyRemainingWaterPercentage < 0.0f ? 0.0f : partyRemainingWaterPercentage;
-            this.SetRemainingWaterPercentage(party, newPercentage);
-            if (newPercentage + SubModule.thirst.mainModel.GetWater(party) <= 0)
-            {
-                this.IsDehydrated = true;
-            }
-            else
-            {
-                this.IsDehydrated = false;
-            }
-            this.SetIsDehydrated(party, this.IsDehydrated);
             CampaignTime campaignTime = CampaignData.CampaignStartTime;
             int toDays1 = (int)campaignTime.ToDays;
             campaignTime = CampaignTime.Now;
             int toDays2 = (int)campaignTime.ToDays;
             if (toDays1 != toDays2)
             {
-                if (this.IsDehydrated)
+                if (isDehydrated)
                 {
                     int dehydrationMoralePenalty = Campaign.Current.Models.PartyMoraleModel.GetDailyStarvationMoralePenalty(party.Party);
                     if (party.IsMainParty)
@@ -304,8 +250,8 @@ namespace Thirst.Models
                 }
                 if (party.MemberRoster.TotalManCount > 1)
                 {
-                    SkillLevelingManager.OnFoodConsumed(party, this.IsDehydrated);
-                    if (!this.IsDehydrated && party.IsMainParty && (double)party.Morale >= 90.0 && party.MemberRoster.TotalRegulars >= 20)
+                    SkillLevelingManager.OnFoodConsumed(party, isDehydrated);
+                    if (!isDehydrated && party.IsMainParty && (double)party.Morale >= 90.0 && party.MemberRoster.TotalRegulars >= 20)
                     {
                         campaignTime = CampaignTime.Now;
                         if ((int)campaignTime.ToDays % 10 == 0)

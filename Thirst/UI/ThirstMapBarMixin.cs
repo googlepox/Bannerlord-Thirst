@@ -9,7 +9,7 @@ using TaleWorlds.Core;
 using TaleWorlds.Core.ViewModelCollection.Information;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
-using Thirst.Models;
+using Thirst.Managers;
 
 namespace Thirst.UI
 {
@@ -112,14 +112,14 @@ namespace Thirst.UI
 
         public override void OnRefresh()
         {
-            this.Water = (float)SubModule.thirst.mainModel.GetWater(mainParty);
+            this.Water = (float)PartyThirstManager.GetWater(mainParty);
             this.Water = (this.Water < 0.0f ? 0.0f : this.Water);
-            float preTotalWater = (((float)SubModule.thirst.mainModel.GetRemainingWaterPercentage(mainParty) + ((this.Water) * 100.0f))/100.0f) < 0.0f ? 0.0f : (float)((SubModule.thirst.mainModel.GetRemainingWaterPercentage(mainParty) + ((this.Water) * 100.0f))/100.0f);
+            float preTotalWater = (((float)ThirstManager.mainPartyRemainingWaterPercentage + ((this.Water) * 100.0f))/100.0f) < 0.0f ? 0.0f : (float)((ThirstManager.mainPartyRemainingWaterPercentage + ((this.Water) * 100.0f))/100.0f);
             this.TotalWater = preTotalWater;
             this.WaterWithAbbrText = CampaignUIHelper.GetAbbreviatedValueTextFromValue((int)this.TotalWater);
             this.ThirstHint = new BasicTooltipViewModel(() => GetPartyWaterTooltip(mainParty));
-            this._isDailyConsumptionTooltipWarningWater = SubModule.thirst.mainModel.GetNumDaysForWaterToLast(mainParty) < 1;
-            this.IsDailyConsumptionTooltipWarningWater = SubModule.thirst.mainModel.GetNumDaysForWaterToLast(mainParty) < 1;
+            this._isDailyConsumptionTooltipWarningWater = PartyThirstManager.GetNumDaysForWaterToLast(mainParty) < 1;
+            this.IsDailyConsumptionTooltipWarningWater = PartyThirstManager.GetNumDaysForWaterToLast(mainParty) < 1;
         }
 
         public List<TooltipProperty> GetPartyWaterTooltip(MobileParty mainParty)
@@ -128,7 +128,7 @@ namespace Thirst.UI
             float num1 = this.TotalWater;
             string str = num1.ToString("0.##");
             properties.Add(new TooltipProperty("Water", str, 0, modifier: TooltipProperty.TooltipPropertyFlags.Title));
-            ExplainedNumber waterChangeExplained = SubModule.thirst.mainModel.WaterChangeExplained(mainParty);
+            ExplainedNumber waterChangeExplained = PartyThirstManager.WaterChangeExplained(mainParty);
             List<(string, float)> lines = waterChangeExplained.GetLines();
             if (lines.Count > 0)
             {
@@ -142,7 +142,6 @@ namespace Thirst.UI
             }
             properties.Add(new TooltipProperty("", string.Empty, 0, false, TooltipProperty.TooltipPropertyFlags.RundownSeperator));
             string changeValueString2 = GetChangeValueString(waterChangeExplained.ResultNumber);
-            SubModule.thirst.mainModel.WaterChange = waterChangeExplained.ResultNumber;
             properties.Add(new TooltipProperty("Expected Change", changeValueString2, 0, modifier: TooltipProperty.TooltipPropertyFlags.RundownResult));
             properties.Add(new TooltipProperty(string.Empty, string.Empty, -1, false));
             List<TooltipProperty> collection1 = new List<TooltipProperty>();
@@ -156,55 +155,17 @@ namespace Thirst.UI
                     EquipmentElement equipmentElement = itemRosterElement.EquipmentElement;
                     ItemObject itemObject1 = equipmentElement.Item;
                     float modifiedAmount;
-                    if ((itemObject1 != null ? (itemObject1.Name.Contains("Pristine") ? 1 : 0) : 0) != 0)
-                    {
-                        List<TooltipProperty> tooltipPropertyList = collection1;
-                        equipmentElement = itemRosterElement.EquipmentElement;
-                        modifiedAmount = itemRosterElement.Amount * 1.75f;
-                        TooltipProperty tooltipProperty = new TooltipProperty(equipmentElement.GetModifiedItemName().ToString(), modifiedAmount.ToString(format: "0.##"), 0);
-                        tooltipPropertyList.Add(tooltipProperty);
-                        num2 += itemRosterElement.Amount;
-                    }
-                    else if ((itemObject1 != null ? (itemObject1.Name.Contains("Clean") ? 1 : 0) : 0) != 0)
-                    {
-                        List<TooltipProperty> tooltipPropertyList = collection1;
-                        equipmentElement = itemRosterElement.EquipmentElement;
-                        modifiedAmount = itemRosterElement.Amount * 1.50f;
-                        TooltipProperty tooltipProperty = new TooltipProperty(equipmentElement.GetModifiedItemName().ToString(), modifiedAmount.ToString(format: "0.##"), 0);
-                        tooltipPropertyList.Add(tooltipProperty);
-                        num2 += itemRosterElement.Amount;
-                    }
-                    else if ((itemObject1 != null ? (itemObject1.Name.Contains("Dirty") ? 1 : 0) : 0) != 0)
-                    {
-                        List<TooltipProperty> tooltipPropertyList = collection1;
-                        equipmentElement = itemRosterElement.EquipmentElement;
-                        modifiedAmount = itemRosterElement.Amount * 0.50f;
-                        TooltipProperty tooltipProperty = new TooltipProperty(equipmentElement.GetModifiedItemName().ToString(), modifiedAmount.ToString(format: "0.##"), 0);
-                        tooltipPropertyList.Add(tooltipProperty);
-                        num2 += itemRosterElement.Amount;
-                    }
-                    else if ((itemObject1 != null ? (itemObject1.Name.Contains("Filthy") ? 1 : 0) : 0) != 0)
-                    {
-                        List<TooltipProperty> tooltipPropertyList = collection1;
-                        equipmentElement = itemRosterElement.EquipmentElement;
-                        modifiedAmount = itemRosterElement.Amount * 0.25f;
-                        TooltipProperty tooltipProperty = new TooltipProperty(equipmentElement.GetModifiedItemName().ToString(), modifiedAmount.ToString(format: "0.##"), 0);
-                        tooltipPropertyList.Add(tooltipProperty);
-                        num2 += itemRosterElement.Amount;
-                    }
-                    else if ((itemObject1 != null ? (itemObject1.Name.ToString() == ("Water") ? 1 : 0) : 0) != 0)
-                    {
-                        List<TooltipProperty> tooltipPropertyList = collection1;
-                        equipmentElement = itemRosterElement.EquipmentElement;
-                        modifiedAmount = itemRosterElement.Amount * 1.00f;
-                        TooltipProperty tooltipProperty = new TooltipProperty(equipmentElement.GetModifiedItemName().ToString(), modifiedAmount.ToString(format: "0.##"), 0);
-                        tooltipPropertyList.Add(tooltipProperty);
-                        num2 += itemRosterElement.Amount;
-                    }
+                    List<TooltipProperty> tooltipPropertyList = collection1;
+                    equipmentElement = itemRosterElement.EquipmentElement;
+                    modifiedAmount = itemRosterElement.Amount * 1.00f;
+                    TooltipProperty tooltipProperty = new TooltipProperty(equipmentElement.GetModifiedItemName().ToString(), modifiedAmount.ToString(format: "0.##"), 0);
+                    tooltipPropertyList.Add(tooltipProperty);
+                    num2 += itemRosterElement.Amount;
                 }
                 else if (!itemRosterElement.IsEmpty &&
                          itemRosterElement.EquipmentElement.Item.ItemCategory.StringId == "mead" ||
                          itemRosterElement.EquipmentElement.Item.ItemCategory.StringId == "beer" ||
+                         itemRosterElement.EquipmentElement.Item.ItemCategory.StringId == "bf_mead" ||
                          itemRosterElement.EquipmentElement.Item.ItemCategory.StringId == "wine")
                 {
                     EquipmentElement equipmentElement = itemRosterElement.EquipmentElement;
@@ -225,8 +186,8 @@ namespace Thirst.UI
                 properties.AddRange(collection1);
                 properties.Add(new TooltipProperty(string.Empty, string.Empty, -1, false));
             }
-            int daysForWaterToLast = SubModule.thirst.mainModel.GetNumDaysForWaterToLast(mainParty);
-            properties.Add(new TooltipProperty(new TextObject("Days until no water").ToString(), PartyWaterConsumptionModel.GetDaysUntilNoWater(daysForWaterToLast, waterChangeExplained.ResultNumber), 0));
+            int daysForWaterToLast = PartyThirstManager.GetNumDaysForWaterToLast(mainParty);
+            properties.Add(new TooltipProperty(new TextObject("Days until no water").ToString(), PartyThirstManager.GetDaysUntilNoWater(daysForWaterToLast, waterChangeExplained.ResultNumber), 0));
             return properties;
         }
 

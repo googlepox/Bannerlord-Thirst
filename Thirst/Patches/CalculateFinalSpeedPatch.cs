@@ -8,7 +8,7 @@ namespace Thirst.Patches
     //[HarmonyPatch(typeof(DefaultPartySpeedCalculatingModel), "CalculateFinalSpeed")]
     internal class CalculateFinalSpeedPatch
     {
-        public static void SpeedFinalizer(ExplainedNumber __result, MobileParty mobileParty)
+        public static void SpeedFinalizer(ref ExplainedNumber __result, MobileParty mobileParty)
         {
             if (mobileParty != null && ThirstManager.partyThirst.ContainsKey(mobileParty) && ThirstManager.partyThirst[mobileParty].IsDehydrated)
             {

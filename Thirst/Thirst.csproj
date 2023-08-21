@@ -16,7 +16,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
+    <OutputPath>..\..\..\..\..\..\..\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\Modules\ThirstMechanic\bin\Win64_Shipping_Client\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -34,21 +34,23 @@
     <AppDesigner Include="Properties\" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Behavior\PartiesBuyWaterCampaignBehavior.cs" />
-    <Compile Include="Behavior\ThirstBehavior.cs" />
+    <Compile Include="Behaviors\PartyThirstBehavior.cs" />
+    <Compile Include="Behaviors\SettlementThirstBehavior.cs" />
+    <Compile Include="Behaviors\WaterItemBehavior.cs" />
     <Compile Include="ItemCategories\WaterItemCategory.cs" />
+    <Compile Include="Managers\PartyThirstManager.cs" />
+    <Compile Include="Managers\PartyWaterBuyingManager.cs" />
+    <Compile Include="Managers\SettlementThirstManager.cs" />
     <Compile Include="Managers\ThirstManager.cs" />
-    <Compile Include="Models\PartyWaterBuyingModel.cs" />
-    <Compile Include="Models\SettlementWaterConsumptionModel.cs" />
     <Compile Include="Patches\CalculateFinalSpeedPatch.cs" />
-    <Compile Include="Patches\FinalizeCharacterCreationPatch.cs" />
     <Compile Include="Patches\GetEffectivePartyMoralePatch.cs" />
+    <Compile Include="ThirstData.cs" />
     <Compile Include="ThirstSaveDefiner.cs" />
-    <Compile Include="WaterItems\WaterItem.cs" />
-    <Compile Include="Models\PartyWaterConsumptionModel.cs" />
+    <Compile Include="Items\WaterItem.cs" />
+    <Compile Include="UI\FoodWidgetFix.cs" />
     <Compile Include="UI\ThirstMapBarMixin.cs" />
     <Compile Include="UI\ThirstMapBarExtension.cs" />
-    <Compile Include="SubModule.cs" />
+    <Compile Include="Main.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
