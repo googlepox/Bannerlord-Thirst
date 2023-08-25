@@ -23,6 +23,19 @@ namespace Thirst.Managers
                 ThirstManager.partyThirst.Add(party, new ThirstData(0, false));
             }
         }
+
+        public static void InitializePlayer()
+        {
+            if (!ThirstManager.partyThirst.ContainsKey(MobileParty.MainParty))
+            {
+                ThirstManager.partyThirst.Add(MobileParty.MainParty, new ThirstData(0, false));
+            }
+
+            foreach (MobileParty party in MobileParty.All)
+            {
+
+            }
+        }
         public static void AddWaterToParties()
         {
             foreach (MobileParty party in MobileParty.All)
@@ -139,29 +152,32 @@ namespace Thirst.Managers
 
         public static void PartyConsumeWater(MobileParty party)
         {
-            ThirstData partyThirstData = ThirstManager.partyThirst[party];
-            bool isDehydrated = partyThirstData.IsDehydrated;
-            float waterChange = GetWaterChange(party);
-            double num1 = waterChange < 0.0 ? -waterChange : 0.0;
-            float percentage = partyThirstData.RemainingWaterPercentage;
-            float partyRemainingWaterPercentageOld = (percentage < 0.0f ? 0.0f : percentage) - MathF.Round((float)(num1 * 100.0f));
-            float partyRemainingWaterPercentage = MakeWaterConsumption(party, partyRemainingWaterPercentageOld);
-            float newPercentage = partyRemainingWaterPercentage < 0.0f ? 0.0f : partyRemainingWaterPercentage;
-            if (newPercentage + GetWater(party) <= 0)
+            if (ThirstManager.partyThirst.ContainsKey(party))
             {
-                isDehydrated = true;
+                ThirstData partyThirstData = ThirstManager.partyThirst[party];
+                bool isDehydrated = partyThirstData.IsDehydrated;
+                float waterChange = GetWaterChange(party);
+                double num1 = waterChange < 0.0 ? -waterChange : 0.0;
+                float percentage = partyThirstData.RemainingWaterPercentage;
+                float partyRemainingWaterPercentageOld = (percentage < 0.0f ? 0.0f : percentage) - MathF.Round((float)(num1 * 100.0f));
+                float partyRemainingWaterPercentage = MakeWaterConsumption(party, partyRemainingWaterPercentageOld);
+                float newPercentage = partyRemainingWaterPercentage < 0.0f ? 0.0f : partyRemainingWaterPercentage;
+                if (newPercentage + GetWater(party) <= 0)
+                {
+                    isDehydrated = true;
+                }
+                else
+                {
+                    isDehydrated = false;
+                }
+                ThirstManager.partyThirst[party] = new ThirstData(newPercentage, isDehydrated);
+                if (party == MobileParty.MainParty)
+                {
+                    ThirstManager.mainPartyRemainingWaterPercentage = newPercentage;
+                    ThirstManager.mainPartyIsDehydrated = isDehydrated;
+                }
+                HandleDehydration(party, isDehydrated);
             }
-            else
-            {
-                isDehydrated = false;
-            }
-            ThirstManager.partyThirst[party] = new ThirstData(newPercentage, isDehydrated);
-            if (party == MobileParty.MainParty)
-            {
-                ThirstManager.mainPartyRemainingWaterPercentage = newPercentage;
-                ThirstManager.mainPartyIsDehydrated = isDehydrated;
-            }
-            HandleDehydration(party, isDehydrated);
         }
 
         public static float MakeWaterConsumption(MobileParty party, float partyRemainingWaterPercentage)

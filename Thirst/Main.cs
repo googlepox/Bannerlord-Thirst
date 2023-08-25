@@ -23,7 +23,6 @@ namespace Thirst
             base.OnSubModuleLoad();
             harmony.PatchAll();
             Main.uiExtender.Register(typeof(Main).Assembly);
-            Main.uiExtender.Enable();
         }
         protected override void OnGameStart(Game game, IGameStarter gameStarterObject)
         {
@@ -36,6 +35,7 @@ namespace Thirst
                 water.Initialize();
                 ((CampaignGameStarter)gameStarterObject).AddBehavior(new PartyThirstBehavior());
                 ((CampaignGameStarter)gameStarterObject).AddBehavior(new SettlementThirstBehavior());
+                Main.uiExtender.Enable();
             }
         }
         public override void OnGameInitializationFinished(Game game)

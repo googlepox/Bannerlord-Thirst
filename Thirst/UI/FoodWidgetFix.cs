@@ -8,7 +8,7 @@ namespace Thirst.UI
     internal class FoodWidgetFix : PrefabExtensionSetAttributePatch
     {
         public override List<Attribute> Attributes => new List<Attribute> {
-            new Attribute( "MinWidth", "20" )
+            new Attribute( "MinWidth", "25" )
         };
     }
 }

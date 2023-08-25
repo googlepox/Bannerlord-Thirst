@@ -38,6 +38,7 @@ namespace Thirst.Behavior
         {
             PartyThirstManager.InitializeParties();
             ThirstManager.AddWaterOnGameStart();
+            PartyThirstManager.InitializePlayer();
         }
 
         private void MobilePartyCreated(MobileParty mobileParty)
