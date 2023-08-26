@@ -30,11 +30,6 @@ namespace Thirst.Managers
             {
                 ThirstManager.partyThirst.Add(MobileParty.MainParty, new ThirstData(0, false));
             }
-
-            foreach (MobileParty party in MobileParty.All)
-            {
-
-            }
         }
         public static void AddWaterToParties()
         {
@@ -189,14 +184,14 @@ namespace Thirst.Managers
             {
                 if (itemRoster.GetItemAtIndex(index) != null && itemRoster.GetItemAtIndex(index).ItemCategory.StringId == "water")
                 {
-                    maxValueWater++;
+                    maxValueWater += itemRoster.GetElementNumber(index);
                 }
                 else if (itemRoster.GetItemAtIndex(index).ItemCategory.StringId == "bf_mead" ||
                     itemRoster.GetItemAtIndex(index).ItemCategory.StringId == "mead" ||
                     itemRoster.GetItemAtIndex(index).ItemCategory.StringId == "beer" ||
                     itemRoster.GetItemAtIndex(index).ItemCategory.StringId == "wine")
                 {
-                    maxValueAlcohol++;
+                    maxValueAlcohol += itemRoster.GetElementNumber(index);
                 }
 
             }

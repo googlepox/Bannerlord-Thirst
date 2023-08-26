@@ -21,7 +21,7 @@ namespace Thirst.Behaviors
 
         private void DailyTickSettlement(Settlement settlement)
         {
-            int count = MBRandom.RandomInt(1, 3);
+            int count = MBRandom.RandomInt(1, 10);
             bool hasAqueduct = false;
             ItemObject waterToAdd = MBObjectManager.Instance.GetObject<ItemObject>(x => x.ItemCategory.StringId == "water");
             if (settlement.IsTown)

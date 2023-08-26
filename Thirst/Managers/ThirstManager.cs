@@ -24,7 +24,7 @@ namespace Thirst.Managers
         {
             partyThirst = new Dictionary<MobileParty, ThirstData>();
             IsWaterGiven = false;
-            NumberOfMenOnMapToDrinkOneWater = 15;
+            NumberOfMenOnMapToDrinkOneWater = 20;
             mainPartyRemainingWaterPercentage = 0;
             mainPartyIsDehydrated = false;
         }

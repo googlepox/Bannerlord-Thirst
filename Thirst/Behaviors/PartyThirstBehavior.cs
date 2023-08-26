@@ -30,6 +30,7 @@ namespace Thirst.Behavior
         {
             PartyThirstManager.InitializeParties();
             ThirstManager.AddWaterOnGameStart();
+            PartyThirstManager.InitializePlayer();
             ThirstManager.mainPartyRemainingWaterPercentage = 0;
             ThirstManager.mainPartyIsDehydrated = false;
         }
